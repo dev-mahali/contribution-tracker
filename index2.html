@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Payment Tracker</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            color: black;
+            padding: 20px;
+        }
+        .container {
+            padding: 20px;
+            border-radius: 10px;
+            background-color: white;
+            width: 50%;
+            margin: auto;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        .qr-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            text-align: center;
+        }
+        .qr-container img {
+            width: 100px;
+            height: 100px;
+        }
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background: white;
+            color: black;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 12px;
+        }
+        th {
+            background-color: #ff6f61;
+            color: white;
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .paid {
+            background-color: #28a745 !important;
+            color: white;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        .mark-paid {
+            background-color: #28a745;
+            color: white;
+        }
+        .mark-paid:hover {
+            background-color: #218838;
+        }
+        .total-amount {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="qr-container">
+            <p>Pay ₹600 via UPI</p>
+            <img src="your-qr-code-url-here" alt="UPI QR Code">
+        </div>
+        <h2>Student Contribution Tracker</h2>
+        <div class="total-amount">
+            <span>Final Total: ₹<span id="finalTotal">0</span></span>
+            <span>Left Money: ₹<span id="leftMoney">0</span></span>
+        </div>
+    </div>
+    <div id="tablesContainer"></div>
+    <footer>
+        <h3>Money Usage</h3>
+        <div class="history">
+            <h4>History:</h4>
+            <ul id="historyList"></ul>
+        </div>
+    </footer>
+    <script>
+        function loadData() {
+            let students = JSON.parse(localStorage.getItem("students")) || [];
+            let history = JSON.parse(localStorage.getItem("history")) || [];
+            let tablesContainer = document.getElementById("tablesContainer");
+            let totalAmount = 0;
+            let spentAmount = history.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+            tablesContainer.innerHTML = "";
+            let branches = {};
+            students.forEach(student => {
+                if (!branches[student.branch]) {
+                    branches[student.branch] = [];
+                }
+                branches[student.branch].push(student);
+            });
+            Object.keys(branches).forEach(branch => {
+                let div = document.createElement("div");
+                div.innerHTML = `<h3>${branch}</h3>
+                    <table>
+                        <thead>
+                            <tr><th>S.No</th><th>Name</th><th>Amount</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            ${branches[branch].map((student, idx) => `
+                                <tr class="${student.paid ? 'paid' : ''}">
+                                    <td>${idx + 1}</td>
+                                    <td>${student.name}</td>
+                                    <td>₹600</td>
+                                    <td>${student.paid ? 'Paid' : 'Pending'}</td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>`;
+                tablesContainer.appendChild(div);
+            });
+            students.forEach(student => {
+                if (student.paid) totalAmount += 600;
+            });
+            document.getElementById("finalTotal").innerText = totalAmount;
+            document.getElementById("leftMoney").innerText = totalAmount - spentAmount;
+            let historyList = document.getElementById("historyList");
+            historyList.innerHTML = history.map(entry => `<li>${entry.purpose} - ₹${entry.amount}</li>`).join('');
+        }
+        setInterval(loadData, 2000);
+        loadData();
+    </script>
+</body>
+</html>
