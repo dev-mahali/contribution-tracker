@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Payment Tracker</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            color: black;
+            padding: 20px;
+        }
+        .container {
+            padding: 20px;
+            border-radius: 10px;
+            background-color: white;
+            width: 50%;
+            margin: auto;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background: white;
+            color: black;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 12px;
+        }
+        th {
+            background-color: #ff6f61;
+            color: white;
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .paid {
+            background-color: #28a745 !important;
+            color: white;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        .mark-paid {
+            background-color: #28a745;
+            color: white;
+        }
+        .mark-paid:hover {
+            background-color: #218838;
+        }
+        .total-amount {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="clearData()" style="background-color: red; color: white; padding: 10px; margin-top: 10px;">Clear All Data</button>
+
+    <h2>Student Contribution Tracker</h2>
+    <div class="container">
+        <h3>Add Student</h3>
+        <form id="studentForm">
+            <input type="text" id="name" placeholder="Enter Name" required>
+            <select id="branch" required>
+                <option value="Civil Engineering">Civil Engineering</option>
+                <option value="Electrical Engineering">Electrical Engineering</option>
+                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                <option value="Computer Science Engineering">Computer Science Engineering</option>
+            </select>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+    
+    <div class="total-amount">Final Total: ₹<span id="finalTotal">0</span></div>
+    
+    <div id="tablesContainer"></div>
+    
+    <script>
+        let students = JSON.parse(localStorage.getItem("students")) || [];
+        let history = JSON.parse(localStorage.getItem("history")) || [];
+
+        function saveData() {
+            localStorage.setItem("students", JSON.stringify(students));
+            localStorage.setItem("history", JSON.stringify(history));
+        }
+
+        function renderHistory() {
+            let historyList = document.getElementById("historyList");
+            historyList.innerHTML = history.map(entry => `<li>${entry.purpose} - ₹${entry.amount}</li>`).join('');
+        }
+
+        function deductAmount() {
+            let purpose = document.getElementById("purpose").value;
+            let amount = parseInt(document.getElementById("amountUsed").value);
+            let finalTotal = parseInt(document.getElementById("finalTotal").innerText);
+            if (amount > finalTotal) {
+                alert("Insufficient funds!");
+                return;
+            }
+            history.push({ purpose, amount });
+            finalTotal -= amount;
+            document.getElementById("finalTotal").innerText = finalTotal;
+            saveData();
+            renderHistory();
+        }
+
+        function renderTables() {
+            let tablesContainer = document.getElementById("tablesContainer");
+            tablesContainer.innerHTML = "";
+            let totalAmount = 0;
+            let branches = {};
+
+            students.forEach((student, index) => {
+                if (!branches[student.branch]) {
+                    branches[student.branch] = [];
+                }
+                branches[student.branch].push({ ...student, index });
+            });
+
+            Object.keys(branches).forEach(branch => {
+                let div = document.createElement("div");
+                div.innerHTML = `<h3>${branch}</h3>
+                    <table>
+                        <thead>
+                            <tr><th>S.No</th><th>Name</th><th>Amount</th><th>Status</th><th>Action</th></tr>
+                        </thead>
+                        <tbody>
+                            ${branches[branch].map((student, idx) => `
+                                <tr class="${student.paid ? 'paid' : ''}">
+                                    <td>${idx + 1}</td>
+                                    <td>${student.name}</td>
+                                    <td>₹600</td>
+                                    <td>${student.paid ? 'Paid' : 'Pending'}</td>
+                                    <td>
+                                        ${!student.paid ? `<button class="mark-paid" onclick="markAsPaid(${student.index})">Mark as Paid</button>` : ''}
+                                    </td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>`;
+                tablesContainer.appendChild(div);
+            });
+
+            students.forEach(student => {
+                if (student.paid) totalAmount += 600;
+            });
+            document.getElementById("finalTotal").innerText = totalAmount;
+        }
+
+        document.getElementById("studentForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            let name = document.getElementById("name").value;
+            let branch = document.getElementById("branch").value;
+            students.push({ name, branch, paid: false });
+            saveData();
+            renderTables();
+        });
+
+        function markAsPaid(index) {
+            students[index].paid = true;
+            saveData();
+            renderTables();
+        }
+
+        function clearData() {
+            localStorage.removeItem("students");
+            localStorage.removeItem("history");
+            students = [];
+            history = [];
+            renderTables();
+            renderHistory();
+        }
+
+        renderTables();
+        renderHistory();
+    </script>
+
+    <footer>
+        <h3>Money Usage</h3>
+        <input type="text" id="purpose" placeholder="Enter Purpose" required>
+        <input type="number" id="amountUsed" placeholder="Enter Amount" required>
+        <button onclick="deductAmount()">Deduct</button>
+        <div class="history">
+            <h4>History:</h4>
+            <ul id="historyList"></ul>
+        </div>
+    </footer>
+</body>
+</html>
